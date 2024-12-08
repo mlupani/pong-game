@@ -6,15 +6,18 @@ canvas.height = 400;
 
 const PLAYERS_WIDTH = 10;
 const PLAYERS_HEIGHT = 60;
-const BALL_SPEED = 4;
-const PLAYER_SPEED = 4;
-const PAUSE = false;
+const FINAL_SCORE = 5;
+let BALL_SPEED = 4;
+let PLAYER_SPEED = 4;
+let GAME_OVER = false;
+let PAUSE = false;
+let TIME = 0.02;
 
 const ball = {
     x: canvas.width / 2,
     y: canvas.height / 2,
     radius: 4,
-    speed: 5,
+    speed: 1,
     dx: BALL_SPEED,
     dy: BALL_SPEED
 }
@@ -32,7 +35,7 @@ const players = [
     {
         x: canvas.width - PLAYERS_WIDTH,
         //y: canvas.height / 2 - PLAYERS_HEIGHT / 2,
-        y: 270,
+        y: 300,
         width: PLAYERS_WIDTH,
         height: PLAYERS_HEIGHT,
         score: 0,
@@ -67,9 +70,24 @@ function ballMovement(){
         ball.dy *= -1;
     }
 
-    // el jugador pierde
-    else if(ball.x + ball.radius > canvas.width || ball.x - ball.radius < 0){
-        document.location.reload();
+    // el 1 jugador pierde
+    else if(ball.x - ball.radius < 0 - 10){
+        players[1].score++;
+        ball.x = canvas.width / 2;
+        ball.y = canvas.height / 2;
+        ball.dx = BALL_SPEED;
+        ball.dy = BALL_SPEED;
+        showPlayerPoint(1);
+    }
+
+    // el 2 jugador pierde
+    else if(ball.x + ball.radius > canvas.width + 10){
+        players[0].score++;
+        ball.x = canvas.width / 2;
+        ball.y = canvas.height / 2;
+        ball.dx = BALL_SPEED;
+        ball.dy = BALL_SPEED;
+        showPlayerPoint(0);
     }
 
     ball.x += ball.dx;
@@ -119,7 +137,7 @@ function initEvents(){
             players[0].downPressed = true;
         }
 
-        if((event.key === 'Enter' || event.key === 'p' || event.code === 'Space')){
+       if((event.key === 'Enter' || event.key === 'p' || event.code === 'Space')){
             PAUSE = !PAUSE;
             if(!PAUSE){
                 draw();
@@ -147,18 +165,80 @@ function initEvents(){
     }
 }
 
+function drawTime(){
+    ctx.fillStyle = TIME <= 0.05 ? 'red' : 'white';
+    if(TIME <= 0){
+        ctx.font = '30px Arial';
+        ctx.fillText("TIEMPO SÚBITO", canvas.width / 2 - 110, 50);
+    }
+    else {
+        ctx.font = '40px Arial';
+        ctx.fillText(TIME.toFixed(2).replace('.',':'), canvas.width / 2 - 40, 50);
+    }
+}
+
+function drawScores(){
+    ctx.font = '20px Arial';
+    ctx.fillStyle = 'white';
+    ctx.fillText("P1 " + players[0].score + "/" + FINAL_SCORE, 0 , 50);
+    ctx.fillText(players[1].score + "/" + FINAL_SCORE + " P2", canvas.width - 60, 50);
+}
+
+function checkScore(){
+    players.forEach(player => {
+        if(player.score === FINAL_SCORE){
+            clearCanvas();
+            drawScores();
+            GAME_OVER = true;
+            ctx.font = '40px Arial';
+            ctx.fillStyle = 'white';
+            ctx.fillText('GAME OVER', canvas.width / 2 - 120, canvas.height / 2);
+            ctx.font = '20px Arial';
+            ctx.fillText('Ganador jugador ' + (player === players[0] ? '1' : '2'), canvas.width / 2 - 80, canvas.height / 2 + 30);
+            ctx.font = '15px Arial';
+            ctx.fillText('Press R to restart', canvas.width / 2 - 55, canvas.height / 2 + 70);
+        }
+
+        if(TIME <= 0){
+            BALL_SPEED = 6;
+            PLAYER_SPEED = 6;
+        }
+    });
+}
+
+function countDown(){
+    setInterval(() => {
+        if(!PAUSE){
+            TIME = TIME - 0.01;
+        }
+    }, 1000);
+}
+
+function showPlayerPoint(player){
+    ctx.font = '40px Arial';
+    ctx.fillStyle = 'white';
+    ctx.fillText('Punto jugador ' + (player + 1), canvas.width / 2 - 120, canvas.height / 2);
+    PAUSE = true;
+    setTimeout(() => {
+        PAUSE = false;
+        draw();
+    }, 2000);
+}
+
 function draw() {
-    if(PAUSE) return;
+    if(PAUSE || GAME_OVER) return;
     clearCanvas();
+    drawTime();
     // hay que dibujar los elementos
     drawBall();
     drawPlayers();
-    //drawScore();
+    drawScores();
 
     // colisiones y movimientos
     ballMovement();
     playersMovement();
     collisionDetection();
+    checkScore();
 
     window.requestAnimationFrame(draw);
 }
@@ -166,3 +246,4 @@ function draw() {
 draw();
 // eventos de teclado
 initEvents();
+countDown();
